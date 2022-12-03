@@ -114,7 +114,7 @@ pickup_approach_angles = [0.0 1.10 1.88 .10 0]';
 midpoint = [0.4366 1.2449 1.9249 -0.0845 0]';
 
 time1 = 0.25;
-time2 = 1;
+time2 = .5;
 approach_to_goal = 0.7;
 goal_to_approach = 0.7;
 %% Moves the robot from the initial position to the first waypoint over 4
@@ -134,11 +134,12 @@ height = -15;
 angle = .27;
 approach_offset = 25;
 separation = 22;
+serpation_even = 25;
 x_odd = 435;
-y_odd = 410;
-x_even = 460;
+y_odd = 405;
+x_even = 455;
 y_even = 380;
-angle2 = angle + (pi/2) + .1;
+angle2 = angle + (pi/2) + 0.15;
 % Place in loop
 for floor = 1:6
     for row = 1:3
@@ -148,8 +149,8 @@ for floor = 1:6
             approach_position2 = [x_odd y_odd-((row-1)*separation) height+(3*approach_offset) 0 0 angle]';
         else
             block_position = [x_even-((row-1)*separation) y_even height 0 0 angle2]';
-            approach_position1 = [x_even-((row-1)*separation)-((row-1)*10) y_even height+approach_offset 0 0 angle2]';
-            approach_position2 = [x_even-((row-1)*separation) y_even height+(3*approach_offset) 0 0 angle2]';
+            approach_position1 = [x_even-((row-1)*serpation_even)-((row-1)*10) y_even height+approach_offset 0 0 angle2]';
+            approach_position2 = [x_even-((row-1)*serpation_even) y_even height+(3*approach_offset) 0 0 angle2]';
         end
         
         block_angles = bot.robot_IK(block_position);
@@ -172,15 +173,13 @@ for floor = 1:6
         command_trajectory(robot, trajectory, frequency);
         trajectory = trajectory_spline([pickup_approach_angles pickup_angles], [0, approach_to_goal], frequency);
         command_trajectory(robot, trajectory, frequency);
-
         pick(gripper);
-%             pause(0.25);
-
         trajectory = trajectory_spline([pickup_angles pickup_approach_angles], [0, goal_to_approach], frequency);
         command_trajectory(robot, trajectory, frequency);
     end
-    height = height + 13.5;
+    height = height + 15;
 end
+place(gripper);
 
 %% Stop logging, and plot results
 robot.stopLog();

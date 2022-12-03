@@ -132,12 +132,13 @@ command_trajectory(robot, trajectory, frequency);
 
 height = -15;
 angle = .27;
-approach_offset = 15;
+approach_offset = 25;
 separation = 22;
 x_odd = 435;
 y_odd = 410;
-x_even = 412;
-y_even = 432;
+x_even = 460;
+y_even = 380;
+angle2 = angle + (pi/2) + 0;
 % Place in loop
 for floor = 1:6
     for row = 1:3
@@ -146,9 +147,9 @@ for floor = 1:6
             approach_position1 = [x_odd y_odd-((row-1)*separation)-((row-1)*10) height+approach_offset 0 0 angle]';
             approach_position2 = [x_odd y_odd-((row-1)*separation) height+(3*approach_offset) 0 0 angle]';
         else
-            block_position = [x_even-((row-1)*separation) y_even height 0 0 angle+(pi/)]';
-            approach_position1 = [x_even-((row-1)*separation)-((row-1)*10) y_even height+approach_offset 0 0 angle]';
-            approach_position2 = [x_even-((row-1)*separation) y_even height+(3*approach_offset) 0 0 angle]';
+            block_position = [x_even-((row-1)*separation) y_even height 0 0 angle2]';
+            approach_position1 = [x_even-((row-1)*separation)-((row-1)*10) y_even height+approach_offset 0 0 angle2]';
+            approach_position2 = [x_even-((row-1)*separation) y_even height+(3*approach_offset) 0 0 angle2]';
         end
         
         block_angles = bot.robot_IK(block_position);
@@ -171,14 +172,11 @@ for floor = 1:6
         command_trajectory(robot, trajectory, frequency);
         trajectory = trajectory_spline([pickup_approach_angles pickup_angles], [0, approach_to_goal], frequency);
         command_trajectory(robot, trajectory, frequency);
-        if (row ~= 3)
             pick(gripper);
-%             pause(0.25);
-        end
-        trajectory = trajectory_spline([pickup_angles pickup_approach_angles], [0, goal_to_approach], frequency);
-        command_trajectory(robot, trajectory, frequency);
+            trajectory = trajectory_spline([pickup_angles pickup_approach_angles], [0, goal_to_approach], frequency);
+            command_trajectory(robot, trajectory, frequency);
     end
-    height = height + 14;
+    height = height + 14.5;
 end
 
 %% Stop logging, and plot results
