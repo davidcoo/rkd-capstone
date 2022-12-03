@@ -1,0 +1,426 @@
+classdef Robot
+    %ROBOT Represents a general fixed-base kinematic chain.
+    
+    properties (SetAccess = 'immutable')
+        dof
+        link_masses
+        joint_masses
+        dh_parameters
+    end
+    
+    methods
+        %% Constructor: Makes a brand new robot with the specified parameters.
+        function robot = Robot(dh_parameters, link_masses, joint_masses)
+            % Make sure that all the parameters are what we're expecting.
+            % This helps catch typos and other lovely bugs.
+            if size(dh_parameters, 2) ~= 4
+                error('Invalid dh_parameters: Should be a dof x 4 matrix, is %dx%d.', size(dh_parameters, 1), size(dh_parameters, 2));
+            end
+            
+            if size(link_masses, 2) ~= 1
+                error('Invalid link_masses: Should be a column vector, is %dx%d.', size(link_masses, 1), size(link_masses, 2));
+            end
+            
+            if size(joint_masses, 2) ~= 1
+                error('Invalid joint_masses: Should be a column vector.');
+            end
+            
+            robot.dof = size(dh_parameters, 1);
+            
+            if size(joint_masses, 1) ~= robot.dof
+                error('Invalid number of joint masses: should match number of degrees of freedom. Did you forget the base joint?');
+            end
+            
+            if size(link_masses, 1) ~= robot.dof
+                error('Invalid number of link masses: should match number of degrees of freedom. Did you forget the base joint?');
+            end
+            
+            robot.dh_parameters = dh_parameters;
+            robot.link_masses = link_masses;
+            robot.joint_masses = joint_masses;
+        end
+        
+        % Returns the forward kinematic map for each frame, one for the base of
+        % each link, and one for the end effector. Link i is given by
+        % frames(:,:,i), and the end effector frame is frames(:,:,end).
+        
+        %% Foward Kinematics        
+        function frames = forward_kinematics(robot, thetas)
+            if size(thetas, 2) ~= 1
+                error('Expecting a column vector of joint angles.');
+            end
+            
+            if size(thetas, 1) ~= robot.dof
+                error('Invalid number of joints: %d found, expecting %d', size(thetas, 1), robot.dof);
+            end
+            
+            % Allocate a variable containing the transforms from each frame
+            % to the base frame.
+            frames = zeros(4,4,robot.dof);
+            n = robot.dof;
+            d = robot.dh_parameters;
+            for i=1:n
+                d(i,4) = thetas(i);
+            end
+            % The transform from the base of link 'i' to the base frame (H^0_i)
+            % is given by the 4x4 matrix frames(:,:,i).
+            
+            % The transform from the end effector to the base frame (H^0_i) is
+            % given by the 4x4 matrix frames(:,:,end).
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            frames(:,:,1) = [cos(d(1,4)) -sin(d(1,4))*cos(d(1,2)) sin(d(1,4))*sin(d(1,2)) d(1,1)*cos(d(1,4)); 
+                             sin(d(1,4)) cos(d(1,4))*cos(d(1,2)) -cos(d(1,4))*sin(d(1,2)) d(1,1)*sin(d(1,4));
+                             0 sin(d(1,2)) cos(d(1,2)) d(1,3);
+                             0 0 0 1];
+            for i=2:n
+                frames(:,:,i) = frames(:,:,i-1)*[cos(d(i,4)) -sin(d(i,4))*cos(d(i,2)) sin(d(i,4))*sin(d(i,2)) d(i,1)*cos(d(i,4)); 
+                             sin(d(i,4)) cos(d(i,4))*cos(d(i,2)) -cos(d(i,4))*sin(d(i,2)) d(i,1)*sin(d(i,4));
+                             0 sin(d(i,2)) cos(d(i,2)) d(i,3);
+                             0 0 0 1];
+
+            end
+            
+            % --------------- END STUDENT SECTION ------------------------------------
+        end
+        
+        function frames = forward_kinematics_frames(robot, thetas)
+            if size(thetas, 2) ~= 1
+                error('Expecting a column vector of joint angles.');
+            end
+            
+            if size(thetas, 1) ~= robot.dof
+                error('Invalid number of joints: %d found, expecting %d', size(thetas, 1), robot.dof);
+            end
+            
+            % Allocate a variable containing the transforms from each frame
+            % to the base frame.
+            frames = zeros(4,4,robot.dof);
+            n = robot.dof;
+            d = robot.dh_parameters;
+            for i=1:n
+                d(i,4) = thetas(i);
+            end
+            % The transform from the base of link 'i' to the base frame (H^0_i)
+            % is given by the 4x4 matrix frames(:,:,i).
+            
+            % The transform from the end effector to the base frame (H^0_i) is
+            % given by the 4x4 matrix frames(:,:,end).
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            frames(:,:,1) = [cos(d(1,4)) -sin(d(1,4))*cos(d(1,2)) sin(d(1,4))*sin(d(1,2)) d(1,1)*cos(d(1,4)); 
+                             sin(d(1,4)) cos(d(1,4))*cos(d(1,2)) -cos(d(1,4))*sin(d(1,2)) d(1,1)*sin(d(1,4));
+                             0 sin(d(1,2)) cos(d(1,2)) d(1,3);
+                             0 0 0 1];
+            for i=2:n
+                frames(:,:,i) = [cos(d(i,4)) -sin(d(i,4))*cos(d(i,2)) sin(d(i,4))*sin(d(i,2)) d(i,1)*cos(d(i,4)); 
+                             sin(d(i,4)) cos(d(i,4))*cos(d(i,2)) -cos(d(i,4))*sin(d(i,2)) d(i,1)*sin(d(i,4));
+                             0 sin(d(i,2)) cos(d(i,2)) d(i,3);
+                             0 0 0 1];
+
+            end
+            
+            % --------------- END STUDENT SECTION ------------------------------------
+        end
+
+
+
+        % Shorthand for returning the forward kinematics.
+        function fk = fk(robot, thetas)
+            fk = robot.forward_kinematics(thetas);
+        end
+        
+        % Returns [x; y; z; psi; theta; phi] for the end effector given a
+        % set of joint angles. Remember that psi is the roll, theta is the
+        % pitch, and phi is the yaw angle.
+        function ee = end_effector(robot, thetas)
+            % Find the transform to the end-effector frame.
+            frames = robot.fk(thetas);
+            H_0_ee = frames(:,:,end);
+            
+            % Extract the components of the end_effector position and
+            % orientation.
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            
+            x = H_0_ee(1,4);
+            y = H_0_ee(2,4);
+            z = H_0_ee(3,4);
+            R = H_0_ee(1:3,1:3);
+            roll = atan2(R(2,1),R(1,1));
+            pitch = atan2(-1*R(3,1), hypot(R(3,2), R(3,3)));
+            yaw = atan2(R(3,2),R(3,3));
+
+            if yaw < 0
+                yaw = yaw + 2*pi;
+            end
+            if yaw >= 2*pi
+                yaw = yaw - 2*pi;
+            end
+            if pitch < 0
+                pitch = pitch + 2*pi;
+            end
+            if pitch >= 2*pi
+                pitch = pitch - 2*pi;
+            end
+            if roll < 0
+                roll = roll + 2*pi;
+            end
+            if roll >= 2*pi
+                roll = roll - 2*pi;
+            end
+            % --------------- END STUDENT SECTION ------------------------------------
+            
+            % Pack them up nicely.
+            ee = [x; y; z; roll; pitch; yaw];
+        end
+        
+        % Shorthand for returning the end effector position and orientation.
+        function ee = ee(robot, thetas)
+            ee = robot.end_effector(thetas);
+        end
+        
+        %% Jacobians
+        
+        function jacobians = jacobians_numerical(robot, thetas)
+            % Returns the SE(3) Jacobian for each frame (as defined in the forward
+            % kinematics map). Note that 'thetas' should be a column vector.
+            
+            % Make sure that all the parameters are what we're expecting.
+            % This helps catch typos and other lovely bugs.
+            if size(thetas, 1) ~= robot.dof || size(thetas, 2) ~= 1
+                error('Invalid thetas: Should be a column vector matching robot DOF count, is %dx%d.', size(thetas, 1), size(thetas, 2));
+            end
+            
+            % Allocate a variable containing the Jacobian matrix from each frame
+            % to the base frame.
+            jacobians = zeros(6,robot.dof,robot.dof);
+            epsilon = 0.001;
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            
+            % --------------- END STUDENT SECTION ------------------------------------
+        end
+        
+        function jacobians = jacobians_analytical(robot)
+            % Returns the SE(3) Jacobian for each frame (as defined in the forward
+            % kinematics map). Note that 'thetas' should be a column vector.
+            
+            % Make sure that all the parameters are what we're expecting.
+            % This helps catch typos and other lovely bugs.
+%             if size(thetas, 1) ~= robot.dof || size(thetas, 2) ~= 1
+%                 error('Invalid thetas: Should be a column vector matching robot DOF count, is %dx%d.', size(thetas, 1), size(thetas, 2));
+%             end
+            
+            % Allocate a variable containing the Jacobian matrix from each frame
+            % to the base frame.
+            jacobians = zeros(6,5);
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            % TODO build up the jacobian using the analytical
+            % convention from lecture
+            
+            
+            frames  = robot.forward_kinematics(zeros(robot.dof,1));
+            o  = zeros(3,robot.dof);
+            z = zeros(3, robot.dof);
+            o_e = robot.ee(zeros(robot.dof,1));
+            for i = 1:robot.dof
+                o(:,i) = frames(1:3,4,i);
+                z(:,i) = frames(1:3,3,i);
+            end
+            for j = 1:robot.dof
+                jacobians(1:3,j) = cross(z(:,j),o_e(1:3)-o(:,j));
+                jacobians(4:6,j) = z(:,j);
+            end
+
+            
+            % --------------- END STUDENT SECTION ------------------------------------
+        end
+        
+        
+        %% Inverse Kinematics
+        
+        function thetas = inverse_kinematics_graddescent(robot, initial_thetas, goal_position)
+            % Returns the joint angles which minimize a simple squared-distance
+            % cost function.
+            
+            % Make sure that all the parameters are what we're expecting.
+            % This helps catch typos and other lovely bugs.
+            if size(initial_thetas, 1) ~= robot.dof || size(initial_thetas, 2) ~= 1
+                error('Invalid initial_thetas: Should be a column vector matching robot DOF count, is %dx%d.', size(initial_thetas, 1), size(initial_thetas, 2));
+            end
+            
+            % Allocate a variable for the joint angles during the optimization;
+            % begin with the initial condition
+            thetas = initial_thetas;
+            
+            % Step size for gradient update
+            step_size = 0.0000005;
+            
+            % Once the norm (magnitude) of the computed gradient is smaller than
+            % this value, we stop the optimization
+            stopping_condition = 0.00005;
+            
+            % Also, limit to a maximum number of iterations.
+            max_iter = 50000;
+            num_iter = 0;
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            % Run gradient descent optimization
+            while (num_iter < max_iter)
+                
+                % Compute the gradient for either an [x;y;z] goal or an
+                % [x; y; z; psi; theta; phi] goal, using the current value of 'thetas'.
+                % TODO fill in the gradient of the squared distance cost function
+                % HINT use the answer for theory question 2, the
+                % 'robot.end_effector' function, and the 'robot.jacobians'
+                % function to help solve this problem
+            
+                
+                % Update 'thetas'
+                % TODO
+                
+                % Check stopping condition, and return if it is met.
+                % TODO
+                
+                num_iter = num_iter + 1;
+            end
+            % --------------- END STUDENT SECTION ------------------------------------
+        end
+        
+        function cost = cost_function(robot, thetas, goal_position)
+            % Cost function for fmincon
+            current_pose = robot.ee(thetas);
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            
+            % --------------- END STUDENT SECTION ------------------------------------
+            
+        end
+        
+        function thetas = inverse_kinematics_numopt(robot, initial_thetas, goal_position)
+            % Returns the joint angles which minimize a simple squared-distance
+            % cost function. Using built in optimization (fmincon)
+            
+            
+            % Make sure that all the parameters are what we're expecting.
+            % This helps catch typos and other lovely bugs.
+            if size(initial_thetas, 1) ~= robot.dof || size(initial_thetas, 2) ~= 1
+                error('Invalid initial_thetas: Should be a column vector matching robot DOF count, is %dx%d.', size(initial_thetas, 1), size(initial_thetas, 2));
+            end
+            
+            % Allocate a variable for the joint angles during the optimization;
+            % begin with the initial condition
+            
+            fun = @(thetas)robot.cost_function(thetas, goal_position);
+            
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+            
+            
+            % --------------- END STUDENT SECTION ------------------------------------
+        end
+        
+        function thetas = inverse_kinematics_analytical(robot, goal_position)
+            % Returns the joint angles using an analytical approach to
+            % inverse kinematics
+            % Note: Kinematics Decoupling might be very useful for this
+            % question
+            
+            % Make sure that all the parameters are what we're expecting.
+            % This helps catch typos and other lovely bugs.
+            %if size(initial_thetas, 1) ~= robot.dof || size(initial_thetas, 2) ~= 1
+            %    error('Invalid initial_thetas: Should be a column vector matching robot DOF count, is %dx%d.', size(initial_thetas, 1), size(initial_thetas, 2));
+            %end
+            
+            thetas = zeros(robot.dof, 1);
+            
+            % --------------- BEGIN STUDENT SECTION ----------------------------------
+              %Robot left
+%             l1 = 406.4;
+%             l2 = 330.2;
+%             l3 = 101.6;
+%             w1 = 101.6;
+%             w2 = -69.85;
+%             w3 = 95.25;
+%             h1 = 50.8;
+
+%             Robot right
+%             l1 = 406.4;
+%             l2 = 330.2;
+%             l3 = 114.3;
+%             w1 = 101.6;
+%             w2 = -63.5;
+%             w3 = 101.6;
+%             h1 = 50.8;
+
+            l1 = robot.dh_parameters(2,1);
+            l2 = robot.dh_parameters(3,1);
+            l3 = robot.dh_parameters(5,3);
+            w1 = robot.dh_parameters(2,3);
+            w2 = robot.dh_parameters(3,3);
+            w3 = robot.dh_parameters(4,3);
+            h1 = robot.dh_parameters(1,3);
+
+            x = goal_position(1);
+            y = goal_position(2);
+            z = goal_position(3);
+            roll = goal_position(4);
+            pitch = goal_position(5);
+            yaw = goal_position(6);
+
+            d = w1+w2+w3;
+
+            thetas(1) = atan2(y,x)+asin(d/hypot(x,y));
+        
+            hrr = sqrt(x^2+y^2);     
+            yc  = z + l3 - h1; %z + suction + (j5 to 4) - base height
+            xc = hrr*(cos(thetas(1)- atan2(y,x)));
+
+            thetas(3) = -acos(((xc^2+yc^2)-l2^2-l1^2)/(2*l1*l2));
+            thetas(2) = atan2(yc, xc) - atan2( l2*sin(thetas(3)), l1+l2*cos(thetas(3)) );
+            thetas(4) = -thetas(2)-thetas(3);
+            thetas(5) = yaw-thetas(1);
+
+
+           
+            
+            % --------------- END STUDENT SECTION ------------------------------------
+        end
+        
+        function thetas = trajectory_to_thetas(robot, trajectory)
+            thetas(:, 1) = robot.inverse_kinematics_analytical(trajectory(:, 1));
+            for theta_col=2:size(trajectory, 2)
+                thetas(:, theta_col) = robot.inverse_kinematics_analytical(trajectory(:, theta_col));
+            end
+        end
+        function none = visualize(robot, thetas)
+            end_points = zeros(3,robot.dof+1);
+            frames = robot.fk(thetas);
+            for i = 1:robot.dof
+                frame_i = frames(:,:,i);
+                link_i  = [frame_i(1,4); frame_i(2,4);frame_i(3,4)];
+                end_points(:,i+1) = link_i; 
+            end
+            X = zeros(robot.dof,100);
+            Y = zeros(robot.dof,100);
+            Z = zeros(robot.dof,100);
+            for i = 1:robot.dof
+                X(i,:)  = linspace(end_points(1,i), end_points(1,i+1));
+                Y(i,:)  = linspace(end_points(2,i), end_points(2,i+1));
+                Z(i,:)  = linspace(end_points(3,i), end_points(3,i+1));
+            end
+            plot3(X',Y',Z');
+            xlabel('x')
+            ylabel('y')
+            zlabel('z')
+        end
+        function robot_thetas = robot_IK(robot,goal_position)
+            robot_thetas = robot.inverse_kinematics_analytical(goal_position);
+            robot_thetas(3) = -robot_thetas(3);
+            robot_thetas(4) = robot_thetas(4) - (pi/2) +.1;
+        
+        end
+    end
+end
