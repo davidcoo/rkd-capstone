@@ -88,17 +88,17 @@ frequency = 100;
 %             l2 = 330.2;
 %             l3 = 101.6;
 %             w1 = 101.6;
-%             w2 = -69.85;
+%             w2 = -69.85; -76
 %             w3 = 95.25;
-%             h1 = 50.8;
+%             h1 = 50.8; 30.8
 %             Robot right
 l1 = 406.4;
 l2 = 330.2;
 l3 = 114.3;
 w1 = 101.6;
-w2 = -63.5;
+w2 = -76.2;
 w3 = 101.6;
-h1 = 50.8;
+h1 = 38.1;
 dh = [ 0 pi/2 h1 0;
     l1 0 w1 0;
     l2 0 w2 0;
@@ -108,61 +108,77 @@ dh = [ 0 pi/2 h1 0;
 % Instantiate a robot object using DH parameters with 0 link and joint mass
 bot=Robot(dh,[0;0;0;0;0],[0;0;0;0;0]);
 %% Fill in positions
-pickup_angles = [0.02 0.84 1.45 .02 0]';
-pickup_approach_angles = [0.0232 0.95 1.3646 -0.2917 pickup_angles(5)]';
+pickup_angles = [0.01 0.85 1.53 -0.12 0]';
+pickup_angles1 = [0.01 0.85 1.54 -0.12 0]';
+pickup_approach_angles = [0.0 1.10 1.88 .10 0]';
 midpoint = [0.4366 1.2449 1.9249 -0.0845 0]';
 
-time1 = 2;
-time2 = 4c;
-approach_to_goal = 2;
-goal_to_approach = 2;
+time1 = 0.25;
+time2 = 1;
+approach_to_goal = 0.7;
+goal_to_approach = 0.7;
 %% Moves the robot from the initial position to the first waypoint over 4
 %% seconds.  We break this into 3 seconds to make most of the motion, and 1 for
 %% the final approach.
 trajectory = trajectory_spline([initial_thetas midpoint pickup_approach_angles], [0, time1, time2], frequency);
 command_trajectory(robot, trajectory, frequency);
-trajectory = trajectory_spline([pickup_approach_angles pickup_angles], [0, approach_to_goal], frequency);
+trajectory = trajectory_spline([pickup_approach_angles pickup_angles1], [0, approach_to_goal], frequency);
 command_trajectory(robot, trajectory, frequency);
 pick(gripper);
-pause(0.75);
-trajectory = trajectory_spline([pickup_angles pickup_approach_angles], [0, goal_to_approach], frequency);
+% pause(0.75);
+trajectory = trajectory_spline([pickup_angles1 pickup_approach_angles], [0, goal_to_approach], frequency);
 command_trajectory(robot, trajectory, frequency);
 
 
-height = -45;
-angle = .29;
-approach_offset = 38;
-separation = 28;
+height = -15;
+angle = .27;
+approach_offset = 15;
+separation = 22;
+x_odd = 435;
+y_odd = 410;
+x_even = 412;
+y_even = 432;
 % Place in loop
-for row = 1:3
-    block_position = [440 438-((row-1)*separation) height 0 0 angle]';
-    approach_position = [440 438-((row-1)*separation) height+approach_offset 0 0 angle]';
-    block_angles = bot.robot_IK(block_position);
-    approach_angles = bot.robot_IK(approach_position);
-    % We keep the last joint equal to the first to ensure the block does not rotateas we move
-    midpoint(5) = pickup_angles(5)*0.5 + block_angles(5)*0.5;
-    % go to place position
-    trajectory = trajectory_spline([pickup_approach_angles midpoint approach_angles], [0, time1, time2], frequency);
-    command_trajectory(robot, trajectory, frequency);
-    trajectory = trajectory_spline([approach_angles block_angles], [0, approach_to_goal], frequency);
-    command_trajectory(robot, trajectory, frequency);
-    % place block
-    place(gripper);
-    pause(0.75);
-    trajectory = trajectory_spline([block_angles approach_angles], [0, goal_to_approach], frequency);
-    command_trajectory(robot, trajectory, frequency);
-    % pick up new block
-    trajectory = trajectory_spline([approach_angles midpoint pickup_approach_angles], [0, time1, time2], frequency);
-    command_trajectory(robot, trajectory, frequency);
-    trajectory = trajectory_spline([pickup_approach_angles pickup_angles], [0, approach_to_goal], frequency);
-    command_trajectory(robot, trajectory, frequency);
-    if (row ~= 3)
-        pick(gripper);
-        pause(0.75);
+for floor = 1:6
+    for row = 1:3
+        if mod(floor,2) == 1
+            block_position = [x_odd y_odd-((row-1)*separation) height 0 0 angle]';
+            approach_position1 = [x_odd y_odd-((row-1)*separation)-((row-1)*10) height+approach_offset 0 0 angle]';
+            approach_position2 = [x_odd y_odd-((row-1)*separation) height+(3*approach_offset) 0 0 angle]';
+        else
+            block_position = [x_even-((row-1)*separation) y_even height 0 0 angle+(pi/)]';
+            approach_position1 = [x_even-((row-1)*separation)-((row-1)*10) y_even height+approach_offset 0 0 angle]';
+            approach_position2 = [x_even-((row-1)*separation) y_even height+(3*approach_offset) 0 0 angle]';
+        end
+        
+        block_angles = bot.robot_IK(block_position);
+        approach_angles1 = bot.robot_IK(approach_position1);
+        approach_angles2 = bot.robot_IK(approach_position2);
+        % We keep the last joint equal to the first to ensure the block does not rotateas we move
+        midpoint(5) = pickup_angles(5)*0.5 + block_angles(5)*0.5;
+        % go to place position
+        trajectory = trajectory_spline([pickup_approach_angles midpoint approach_angles1], [0, time1, time2], frequency);
+        command_trajectory(robot, trajectory, frequency);
+        trajectory = trajectory_spline([approach_angles1 block_angles], [0, approach_to_goal], frequency);
+        command_trajectory(robot, trajectory, frequency);
+        % place block
+        place(gripper);
+%         pause(0.25);
+        trajectory_1 = trajectory_spline([block_angles approach_angles2], [0, goal_to_approach], frequency);
+        command_trajectory(robot, trajectory_1, frequency);
+        % pick up new block
+        trajectory = trajectory_spline([approach_angles2 midpoint pickup_approach_angles], [0, time1, time2], frequency);
+        command_trajectory(robot, trajectory, frequency);
+        trajectory = trajectory_spline([pickup_approach_angles pickup_angles], [0, approach_to_goal], frequency);
+        command_trajectory(robot, trajectory, frequency);
+        if (row ~= 3)
+            pick(gripper);
+%             pause(0.25);
+        end
+        trajectory = trajectory_spline([pickup_angles pickup_approach_angles], [0, goal_to_approach], frequency);
+        command_trajectory(robot, trajectory, frequency);
     end
-    trajectory = trajectory_spline([pickup_angles pickup_approach_angles], [0, goal_to_approach], frequency);
-    command_trajectory(robot, trajectory, frequency);
-
+    height = height + 14;
 end
 
 %% Stop logging, and plot results
