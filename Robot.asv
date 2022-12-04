@@ -419,7 +419,7 @@ classdef Robot
         function robot_thetas = robot_IK(robot,goal_position)
             robot_thetas = robot.inverse_kinematics_analytical(goal_position);
             robot_thetas(3) = -robot_thetas(3);
-            robot_thetas(4) = robot_thetas(4) - (pi/2) + ;
+            robot_thetas(4) = robot_thetas(4) - (pi/2) +.1;
         
         end
     end

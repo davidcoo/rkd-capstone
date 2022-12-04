@@ -135,22 +135,30 @@ angle = .27;
 approach_offset = 25;
 separation = 22;
 serpation_even = 25;
-x_odd = 435;
-y_odd = 405;
-x_even = 455;
-y_even = 380;
-angle2 = angle + (pi/2) + 0.15;
+x_odd = 433;
+y_odd = 407.5;
+x_even = x_odd + 25;
+y_even = y_odd - 25;
+angle2 = angle + (pi/2) + 0.1;
+odd_x_offset = 1;
+odd_y_offset = 2;
+even_x_offset = 1;
+even_y_offset = 1;
 % Place in loop
 for floor = 1:6
     for row = 1:3
         if mod(floor,2) == 1
-            block_position = [x_odd y_odd-((row-1)*separation) height 0 0 angle]';
-            approach_position1 = [x_odd y_odd-((row-1)*separation)-((row-1)*10) height+approach_offset 0 0 angle]';
-            approach_position2 = [x_odd y_odd-((row-1)*separation) height+(3*approach_offset) 0 0 angle]';
+            x_offset = (((floor-1)/2)*odd_x_offset) - ((row-1)*1);
+            y_offset = (((floor-1)/2)*odd_y_offset) + 1*(floor > 1);
+            block_position = [x_odd-x_offset y_odd-((row-1)*separation)-y_offset height 0 0 angle]';
+            approach_position1 = [x_odd-x_offset y_odd-((row-1)*separation)-((row-1)*10)-y_offset height+approach_offset 0 0 angle]';
+            approach_position2 = [x_odd-x_offset y_odd-((row-1)*separation)-y_offset height+(3*approach_offset) 0 0 angle]';
         else
-            block_position = [x_even-((row-1)*separation) y_even height 0 0 angle2]';
-            approach_position1 = [x_even-((row-1)*serpation_even)-((row-1)*10) y_even height+approach_offset 0 0 angle2]';
-            approach_position2 = [x_even-((row-1)*serpation_even) y_even height+(3*approach_offset) 0 0 angle2]';
+            y_offset  = (((floor-1)/2)*even_y_offset);
+            x_offset = (((floor-1)/2)*even_x_offset);
+            block_position = [x_even-((row-1)*separation)-x_offset y_even-y_offset height 0 0 angle2]';
+            approach_position1 = [x_even-((row-1)*serpation_even)-x_offset-((row-1)*10) y_even-y_offset height+approach_offset 0 0 angle2]';
+            approach_position2 = [x_even-((row-1)*serpation_even)-x_offset y_even-y_offset height+(3*approach_offset) 0 0 angle2]';
         end
         
         block_angles = bot.robot_IK(block_position);
@@ -177,7 +185,7 @@ for floor = 1:6
         trajectory = trajectory_spline([pickup_angles pickup_approach_angles], [0, goal_to_approach], frequency);
         command_trajectory(robot, trajectory, frequency);
     end
-    height = height + 15;
+    height = height + 16;
 end
 place(gripper);
 
